@@ -1,1 +1,263 @@
+name: Build Android App
 
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: تجهيز Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.2'
+          channel: stable
+
+      - name: تنزيل المشروع
+        uses: actions/checkout@v4
+
+      - name: إنشاء مشروع Flutter
+        run: |
+          rm -f pubspec.yaml
+          rm -rf android ios web linux macos windows
+          flutter create --org com.manjez.app --project-name manjez .
+
+      - name: إنشاء تطبيق منجز
+        run: |
+          cat > lib/main.dart <<'DART'
+          import 'package:flutter/material.dart';
+
+          void main() {
+            runApp(const ManjezApp());
+          }
+
+          class ManjezApp extends StatelessWidget {
+            const ManjezApp({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'منجز',
+                theme: ThemeData(
+                  useMaterial3: true,
+                  fontFamily: 'sans',
+                  colorSchemeSeed: const Color(0xFF6750A4),
+                  brightness: Brightness.light,
+                ),
+                darkTheme: ThemeData(
+                  useMaterial3: true,
+                  colorSchemeSeed: const Color(0xFF9A82DB),
+                  brightness: Brightness.dark,
+                ),
+                themeMode: ThemeMode.system,
+                home: const HomePage(),
+              );
+            }
+          }
+
+          class HomePage extends StatefulWidget {
+            const HomePage({super.key});
+
+            @override
+            State<HomePage> createState() => _HomePageState();
+          }
+
+          class _HomePageState extends State<HomePage> {
+            final List<String> tasks = [];
+            final TextEditingController controller = TextEditingController();
+
+            void addTask() {
+              final text = controller.text.trim();
+              if (text.isEmpty) return;
+
+              setState(() {
+                tasks.add(text);
+                controller.clear();
+              });
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Directionality(
+                textDirection: TextDirection.rtl,
+                child: Scaffold(
+                  appBar: AppBar(
+                    title: const Text(
+                      'منجز',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    centerTitle: false,
+                    actions: [
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.search),
+                      ),
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.settings_outlined),
+                      ),
+                    ],
+                  ),
+                  body: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'مهامك اليوم',
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'نظّم يومك وأنجز أهدافك',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: controller,
+                                    onSubmitted: (_) => addTask(),
+                                    decoration: const InputDecoration(
+                                      hintText: 'أضف مهمة جديدة...',
+                                      border: InputBorder.none,
+                                    ),
+                                  ),
+                                ),
+                                FilledButton(
+                                  onPressed: addTask,
+                                  child: const Icon(Icons.add),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Expanded(
+                          child: tasks.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.task_alt,
+                                        size: 70,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        'لا توجد مهام بعد',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      const Text(
+                                        'ابدأ بإضافة أول مهمة لك اليوم',
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  itemCount: tasks.length,
+                                  itemBuilder: (context, index) {
+                                    return Card(
+                                      margin:
+                                          const EdgeInsets.only(bottom: 10),
+                                      child: ListTile(
+                                        leading: Checkbox(
+                                          value: false,
+                                          onChanged: (_) {},
+                                        ),
+                                        title: Text(tasks[index]),
+                                        trailing: IconButton(
+                                          icon: const Icon(Icons.delete_outline),
+                                          onPressed: () {
+                                            setState(() {
+                                              tasks.removeAt(index);
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  floatingActionButton: FloatingActionButton(
+                    onPressed: () {
+                      controller.clear();
+                      showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text('إضافة مهمة'),
+                          content: TextField(
+                            controller: controller,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              hintText: 'اكتب المهمة',
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('إلغاء'),
+                            ),
+                            FilledButton(
+                              onPressed: () {
+                                addTask();
+                                Navigator.pop(context);
+                              },
+                              child: const Text('إضافة'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: const Icon(Icons.add),
+                  ),
+                ),
+              );
+            }
+          }
+          DART
+
+      - name: تثبيت الحزم
+        run: flutter pub get
+
+      - name: بناء APK
+        run: flutter build apk --release
+
+      - name: حفظ APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: manjez-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
