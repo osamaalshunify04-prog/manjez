@@ -1,2 +1,2 @@
-# Accomplished
-A comprehensive daily task application 
+# منجز
+تطبيق عربي لإدارة المهام اليومية. مشروع Flutter قابل للتطوير والبناء عبر GitHub Actions.
